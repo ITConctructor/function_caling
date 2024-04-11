@@ -1,32 +1,78 @@
 import requests
 import json
 import re
+import random
 
 class Environment():
     def __init__(self, url):
         self.url = url
-        self.menu = [
-            {"name":"Пиво","cost":5},
-            {"name":"Рыбка","cost":10},
-        ]
-        self.tables = [
-            {"number":1, "is_free":False},
-            {"number":2, "is_free":True},
-        ]
-
         self.functions = [
-            """{ "name": "buy_item", "description": "Покупка еды или напитка из меню", "parameters": { "type": "object", "properties": { "name": { "type": "string", "description": "Название позиции из меню, которую нужно приобрести" }}, "required": [ "name" ] } }""",
-            """{ "name": "book_table", "description": "Бронирование столика в таверне", "parameters": { "type": "object", "properties": { "number": { "type": "string", "description": "Номер столика, который нужно забронировать" }}, "required": [ "number" ] } }"""
-        ]
-
-        self.agent_state = {
-            "balance":0
-        }
+            {
+                "name": "sell_item",
+                "description": "Продать предмет игроку",
+                "parameters": { 
+                    "type": "object", 
+                    "properties": { 
+                        "item_name": { 
+                            "type": "string", 
+                            "description": "Название предмета" }, 
+                        "price": { 
+                            "type": "number", 
+                            "description": "Цена в монетах" } }, 
+                        "required": [ "item_name", "price" ] }
+            },
+            {
+                "name": "buy_item",
+                "description": "Купить предмет у игрока",
+                "parameters": { 
+                    "type": "object", 
+                    "properties": { 
+                        "item_name": { 
+                            "type": "string", 
+                            "description": "Название предмета" }, 
+                        "price": { 
+                            "type": "number", 
+                            "description": "Цена в монетах" } }, 
+                        "required": [ "item_name", "price" ] }
+            },
+            {
+                "name": "get_quests",
+                "description": "Получить квесты",
+                "parameters": { 
+                    "type": "object", 
+                    "properties": { 
+                        "difficulty": { 
+                            "type": "string", 
+                            "description": "Сложность квестов", 
+                            "enum": ["easy", "medium", "hard"] } }, 
+                    "required": [ "difficulty" ] }
+            },
+            {
+                "name": "get_news",
+                "description": "Получить новости",
+                "parameters": { 
+                    "type": "object", 
+                    "properties": { 
+                        "theme": { 
+                            "type": "string", 
+                            "description": "Тема новостей", 
+                            "enum": [ "война", "королевство", "турниры" ]} }, 
+                    "required": [ "theme" ] }
+            }]
         
         self.state = {
-            "menu":self.menu,
-            "tables":self.tables,
-            "agent_state":self.agent_state
+            "balance":100,
+            "loot":[],
+        }
+        self.quests = {
+            "easy":[],
+            "medium":[],
+            "hard":[]
+        }
+        self.news = {
+            "война":[],
+            "королевство":[],
+            "турниры":[],
         }
 
         SYSTEM_PROMPT = (
@@ -76,33 +122,45 @@ class Environment():
             return name, args
         except:
             return "default_func", {}
+    
+    def sell_item(self, item_name, price):
+        result = {
+            "Ответ":"Недостаточно денег"
+        }
+        try:
+            price = int(price)
+            if price <= self.state["balance"]:
+                self.state["loot"].append(item_name)
+                self.state["balance"] -= price
+                result["Ответ"] = "Успешно"
+            return result
+        except:
+            return result
 
-    def buy_item(self, name: str):
-        is_enable = "Нет"
-        cost = 0
-        for i in self.menu:
-            if i["name"] == name:
-                is_enable = "Да"
-                cost = i["cost"]
-                break
+    def buy_item(self, item_name, price):
         result = {
-            "Есть в наличии":is_enable,
-            "Стоимость":cost,
+            "Ответ":"Товар отсутствует"
         }
-        return result
-    def book_table(self, number: str):
-        number = int(number)
-        answer = "Нет такого столика"
-        for t in self.tables:
-            if t["number"] == number:
-                if t["is_free"] == True:
-                    answer = "Успешно"
-                else:
-                    answer = "Столик занят"
-        result = {
-            "Ответ":answer
-        }
-        return result
+        try:
+            price = int(price)
+            if item_name in self.state["loot"]:
+                self.state["loot"].remove(item_name)
+                self.state["balance"] += price
+                result["Ответ"] = "Успешно"
+            return result
+        except:
+            return result
+    
+    def get_quests(self, difficulty):
+        quests = self.quests.get(difficulty, ["Квестов нет"])
+        quest = random.sample(quests)
+        return {"Квест":quest}
+
+    def get_news(self, theme):
+        theme = self.news.get(theme, ["Новостей нет"])
+        story = random.sample(theme)
+        return {"Новости":story}
+    
     def default_func(self):
         return "Не удалось получить ответ."
     
