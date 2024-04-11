@@ -5,9 +5,8 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 from peft import PeftModel, PeftConfig
 import re
 from fastapi import FastAPI
-from fastapi.responses import HTMLResponse
 from prometheus_fastapi_instrumentator import Instrumentator
-from src.utils.data.formats import FORMATS_DICT
+from formats import FORMATS_DICT
 
 class KeywordsStoppingCriteria(StoppingCriteria):
     def __init__(self, keywords:list, tokenizer):
@@ -60,7 +59,7 @@ class Agent():
             role == "function_call"
         return json.dumps({"role":role, "content":output}, ensure_ascii=False)
 
-config_path = "configs/inference.yaml"
+config_path = "inference.yaml"
 with open(config_path, "r") as f:
     config = yaml.safe_load(f)
 AGENT = Agent(config=config)
