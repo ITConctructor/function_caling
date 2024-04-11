@@ -72,3 +72,22 @@ def create_llama_test_prompt(row) -> Dict[str, List[str]]:
 
 def create_llama_prompt(row: Dict[str, str]) -> str:
     return "".join(row_to_tokens(row))
+
+def llama_format_chat(messages: List[Dict[str, str]]):
+    prompt = ""
+    if messages[0]["role"] != "system":
+        return prompt
+    for m in messages:
+        mes = ""
+        if m["role"] == "system":
+            mes = f"{S_B}{SYS_B}{m["content"]}{SYS_E}"
+        elif m["role"] == "user":
+            mes = m["content"] + INST_E
+        elif m["role"] == "assistant":
+            mes = m["content"]
+        elif m["role"] == "function_call":
+            mes = TOOL_CALL_B + m["content"] + TOOL_CALL_E
+        elif m["role"] == "function_response":
+            mes = TOOL_RESPONSE_B + m["content"] + TOOL_RESPONSE_E
+        prompt = prompt + mes
+    return prompt

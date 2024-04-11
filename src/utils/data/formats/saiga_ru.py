@@ -26,53 +26,8 @@ RESPONSE_ROLE = "function_response"
 
 
 def row_to_tokens(row: Dict[str, Any]) -> List[str]:
-    messages = json.loads(row["conversations_ru"])
-    content = {
-        "messages":[],
-        "functions":[]
-    }
-    for m in messages:
-        if m["role"] == "system":
-            c = m["content"].split("{")[0]
-            f = re.findall(r"\{\}", m["content"])
-            content["functions"] = f
-            new_m = {
-                "role":SYSTEM_ROLE,
-                "content":c
-            }
-            content["messages"].append(new_m)
-        elif m["role"] == "user":
-            new_m = {
-                "role":USER_ROLE,
-                "content":m["content"]
-            }
-            content["messages"].append(new_m)
-        elif m["role"] == "assistant":
-            if m["content"] == None:
-                new_m = {
-                    "role":BOT_ROLE,
-                    "content":FUNCTON_CALL_TEMPLATE.format(json.dumps(m["function_call"], ensure_ascii=False))
-                }
-                content["messages"].append(new_m)
-            else:
-                new_m = {
-                    "role":BOT_ROLE,
-                    "content":m["content"]
-                }
-                content["messages"].append(new_m)
-        elif m['role'] == "function":
-            c = {
-                "name":m["name"],
-                "arguments":m["content"]
-            }
-            new_m = {
-                "role":RESPONSE_ROLE,
-                "content":RESPONSE_TEMPLATE.format(json.dumps(c, ensure_ascii=False))
-            }
-            content["messages"].append(new_m)
-
-    messages = json.loads(content["messages"])
-    functions = json.loads(content["functions"])
+    messages = json.loads(row["messages"])
+    functions = json.loads(row["functions"])
 
     # Customize system prompt
     tools = ",\n".join([json.dumps(function, indent=4) for function in functions])
@@ -117,3 +72,18 @@ def create_saiga_prompt(row: Dict[str, str]) -> str:
             message = "".join([S_B, MESSAGE_TEMPLATE.format({"role":tokens[i-2], "content":tokens[i-1]})], S_E)
             result = result + message
     return result
+
+def saiga_format_chat(messages: List[Dict[str, str]]):
+    prompt = ""
+    for m in messages:
+        new_m = {
+            'role':m["role"],
+            "content":m["content"]
+        }
+        if m["role"] == "function_call" or m["role"] == "assistant":
+            new_m["role"] = "bot"
+        elif m["role"] == "function_response":
+            new_m["role"] = RESPONSE_ROLE
+        message = "".join([S_B, MESSAGE_TEMPLATE.format(**new_m), S_E])
+        prompt = prompt + message
+    return prompt
