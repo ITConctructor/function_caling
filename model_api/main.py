@@ -35,7 +35,7 @@ class Agent():
                                                     bnb_4bit_quant_type="nf4", bnb_4bit_use_double_quant=True)
         }
         base_model = AutoModelForCausalLM.from_pretrained(**model_config)
-        self.model = PeftModel.from_pretrained(base_model, config["model_name"])
+        self.model = PeftModel.from_pretrained(base_model, config["model_args"]["model_name"])
         self.tokenizer = AutoTokenizer.from_pretrained(peft_config.base_model_name_or_path)
         self.generation_config = GenerationConfig.from_pretrained(model_config["pretrained_model_name_or_path"])
         self.generation_config.max_new_tokens = 1000
