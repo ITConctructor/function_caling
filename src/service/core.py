@@ -113,6 +113,9 @@ class Environment():
         answer_dict = json.loads(answer)
         self.history = self.history + answer_dict
         return answer
+    
+    def get_state(self):
+        return self.state
 
     def parse_function(self, function_call_string):
         try:
