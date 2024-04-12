@@ -1,6 +1,9 @@
+pyyaml
+regex
 fastapi
 uvicorn[standard]
 prometheus-fastapi-instrumentator
+torch
 transformers
 peft
 bitsandbytes
